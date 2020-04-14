@@ -41,8 +41,7 @@
     "rollup-plugin-terser": "^5.1.2",
     "rollup-plugin-typescript2": "^0.24.3",
     "rollup-plugin-uglify": "^6.0.3",
-    "typescript": "^3.6.4",
-    "@material/card": "5.1.0"
+    "typescript": "^3.6.4"
   },
   "scripts": {
     "start": "rollup -c --watch",
