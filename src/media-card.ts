@@ -442,6 +442,7 @@ export class MediaCard extends LitElement {
   }
 
   public getCardSize(): number {
-    return this.cardSize;
+    return 10;
+    //return this.cardSize;
   }
 }
