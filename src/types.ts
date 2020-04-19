@@ -15,6 +15,9 @@ export interface MediaCardConfig {
   image_style?: string;
   max?: number;
   date?: string;
+  clock?: number;
+  hide_flagged?: boolean;
+  hide_unflagged?: boolean;
   flag?: boolean;
   flag_color?: string;
   icon?: string;
@@ -33,6 +36,7 @@ export interface MediaCardConfig {
   line3_size?: string;
   line4_size?: string;
   line5_size?: string;
+  line_size?: string;
 
   title_color?: string;
   line1_color?: string;
@@ -40,6 +44,7 @@ export interface MediaCardConfig {
   line3_color?: string;
   line4_color?: string;
   line5_color?: string;
+  line_color?: string;
 
   text_link?: string;
   link?: string;

@@ -25,7 +25,7 @@ console.info(
   'color: white; font-weight: bold; background: dimgray',
 );
 
-function loadCSS(url) {
+function loadCSS(url): void {
   const link = document.createElement('link');
   link.type = 'text/css';
   link.rel = 'stylesheet';
@@ -38,6 +38,8 @@ function loadCSS(url) {
 // TODO Name your custom element
 @customElement('media-card')
 export class MediaCard extends LitElement {
+  cardSize = 0;
+
   public static async getConfigElement(): Promise<LovelaceCardEditor> {
     return document.createElement('media-card-editor') as LovelaceCardEditor;
   }
@@ -87,8 +89,7 @@ export class MediaCard extends LitElement {
     }
 
     const json = JSON.parse(stateObj.attributes.data);
-    if (!json || !json[1] || this.prev_json == JSON.stringify(json)) return;
-    this.prev_json = JSON.stringify(json);
+    if (!json || !json[1]) return;
 
     const view = this._config.image_style || "fanart";
     const dateform = this._config.date || "mmdd";
@@ -110,7 +111,7 @@ export class MediaCard extends LitElement {
     const line5_text = this._config.line5_text || json[0]["line5_default"];
 
     const text_link = this._config.text_link || json[0]["text_link_default"];
-    const link = this._config.link || json[0]["link_default"];
+    const global_link = this._config.link || json[0]["link_default"];
 
     const title_size = this._config.title_size || "large";
     const line1_size =
@@ -123,16 +124,7 @@ export class MediaCard extends LitElement {
       this._config.line4_size || this._config.line_size || "small";
     const line5_size =
       this._config.line5_size || this._config.line_size || "small";
-    const tSize = size =>
-      size == "large" ? "14" : size == "medium" ? "12" : "10";
-    const size = [
-      tSize(title_size),
-      tSize(line1_size),
-      tSize(line2_size),
-      tSize(line3_size),
-      tSize(line4_size),
-      tSize(line5_size)
-    ];
+
     const defaultClr = "var(--primary-text-color)";
     const title_color =
       this._config.title_color ||
@@ -157,50 +149,197 @@ export class MediaCard extends LitElement {
       this._config.line5_color ||
       this._config.line_color ||
       defaultClr;
+    this.cardSize = Math.min(json.length - 1, this._config.max || 5);
 
+    function truncate(text, chars) {
+      // When to truncate depending on size
+      chars = chars == "large" ? 30 : chars == "medium" ? 33 : 42;
+      // Remove parentheses & contents: "Shameless (US)" becomes "Shameless".
+      text = text.replace(/ *\([^)]*\) */g, " ");
+      // Truncate only at whole word w/ no punctuation or space before ellipsis.
+      if (text.length > chars) {
+        for (let i = chars; i > 0; i--) {
+          if (
+            text.charAt(i).match(/( |:|-|;|"|'|,)/) &&
+            text.charAt(i - 1).match(/[a-zA-Z0-9_]/)
+          ) {
+            return `${text.substring(0, i)}...`;
+          }
+        }
+      } else {
+        return text;
+      }
+    }
+
+    function format_date(input_date) {
+      // Match UTC ISO formatted date with time
+      let fd_day, fd_month, fd_year;
+      if (String(input_date).match(/[T]\d+[:]\d+[:]\d+[Z]/)) {
+        fd_day = new Date(input_date).toLocaleDateString([], {
+          day: "2-digit"
+        });
+        fd_month = new Date(input_date).toLocaleDateString([], {
+          month: "2-digit"
+        });
+        fd_year = new Date(input_date).toLocaleDateString([], {
+          year: "numeric"
+        });
+        // Match date string. ie: 2018-10-31
+      } else if (String(input_date).match(/\d+[-]\d+[-]\d+/)) {
+        input_date = input_date.split("-");
+        fd_month = input_date[1];
+        fd_day = input_date[2];
+        fd_year = input_date[3];
+      } else {
+        return "";
+      }
+      if (dateform == "ddmm") return `${fd_day}/${fd_month}/${fd_year}`;
+      else return `${fd_month}/${fd_day}/${fd_year}`;
+    }
+
+    const HTML: Array<TemplateResult> = [];
+
+    for (let count = 1; count <= this.cardSize; count++) {
+      const item = (key: string) => json[count][key];
+      if (!item("airdate")) continue;
+      if (this._config.hide_flagged && item("flag")) continue;
+      else if (this._config.hide_unflagged && !item("flag")) continue;
+      const airdate = new Date(item("airdate"));
+      const dflag = item("flag") && flag ? "color: " + icon_color + ";" : "display:none;";
+      const image =
+        view == "poster" ? item("poster") : item("fanart") || item("poster");
+      const daysBetween = Math.round(
+        Math.abs(
+          (new Date().getTime() - airdate.getTime()) / (24 * 60 * 60 * 1000)
+        )
+      );
+      const day =
+        daysBetween <= 7 ?
+          airdate.toLocaleDateString([], {
+            weekday: "long"
+          }) :
+          airdate.toLocaleDateString([], {
+            weekday: "short"
+          });
+
+      // Format runtime as either '23 min' or '01:23' if over an hour
+      const hrs = String(Math.floor(item("runtime") / 60)).padStart(2, "0");
+      const min = String(Math.floor(item("runtime") % 60)).padStart(2, "0");
+      const runtime =
+        item("runtime") > 0 ? (item("runtime") > 60 ? `${hrs}:${min}` : `${min} min`) : "";
+
+
+      const line = [title_text, line1_text, line2_text, line3_text, line4_text, line5_text];
+      const tfull = [title_text, line1_text, line2_text, line3_text, line4_text, line5_text];
+      const tsize = [title_size, line1_size, line2_size, line3_size, line4_size, line5_size];
+
+      // Keyword map for replacement, return null if empty so we can hide empty sections
+      const keywords = /\$title|\$episode|\$genres|\$number|\$rating|\$release|\$runtime|\$studio|\$day|\$date|\$time|\$aired|\$tagline|\$info|\$imdb_url|\$vfs_url/g;
+      const keys = {
+        $title: item("title") || null,
+        $episode: item("episode") || null,
+        $genres: item("genres") || null,
+        $number: item("number") || null,
+        $rating: item("rating") || null,
+        $release: item("release") || null,
+        $studio: item("studio") || null,
+        $runtime: runtime || null,
+        $day: day || null,
+        $time: airdate.toLocaleTimeString([], timeform) || null,
+        $date: format_date(item("airdate")) || null,
+        $aired: format_date(item("aired")) || null,
+        $tagline: item("tagline") || null,
+        $info: item("info") || null,
+        $imdb_url: item("imdb_url") || null,
+        $vfs_url: item("vfs_url") || null
+      };
+
+      // Replace keywords in lines
+      for (let i = 0; i < line.length; i++) {
+        line[i] = line[i].replace(" - ", "-");
+        // Split at '-' so we can ignore entire contents if keyword returns null
+        const text = line[i].replace(keywords, val => keys[val]).split("-");
+        const filtered: string[] = [];
+        // Rebuild lines, ignoring null
+        for (let t = 0; t < text.length; t++) {
+          if (text[t].match(null)) continue;
+          else filtered.push(text[t]);
+        }
+        // Replacing twice to get keywords in component generated strings
+        tfull[i] = filtered.join(" - ").replace(keywords, val => keys[val]);
+        line[i] = truncate(tfull[i], tsize[i]);
+      }
+
+      let tlink = "";
+      if (text_link.length > 0) {
+        tlink = text_link.replace(keywords, val => keys[val]);
+      }
+      let glink = "";
+      if (global_link.length > 0) {
+        glink = global_link.replace(keywords, val => keys[val]);
+      }
+
+      if (view == "poster") {
+      } else {
+        HTML.push(html`
+          <!-- <tr><td class="kc_td" style="background-image: linear-gradient(to left, rgba(0, 0, 0, 1.0), transparent), url(${image});"> -->
+          <tr><td class="kc_td">
+            <div class="kc_front">
+              <div class="">
+                ${line.map((_item, i) => html`
+                  <div class="kc_text_${tsize[i]}" title="${tfull[i]}">${line[i].match("empty") ? html`<br/>` : line[i]}</div>
+                `)}
+              </div>
+              <div>
+                <div>
+                  ${tlink != "null" && tlink.length > 0 ? html`<mwc-button .url="${tlink}" @click="${this._openURL}">Details</mwc-button>` : html``}
+                  ${glink != "null" && glink.length > 0 ? html`<mwc-button .url="${glink}" @click="${this._openURL}">Launch</mwc-button>` : html``}
+                  <mwc-button
+                  .id="${item("id")}"
+                  .type="${item("type")}"
+                  @click="${this._handleDeleteButton}"
+                  >
+                    Delete
+                  </mwc-button>
+                </div>
+<!--                 <div>
+                  <paper-icon-button icon="mdi:heart-outline" title="Add to favorites"></paper-icon-button>
+                  <button
+                    class="mdc-icon-button material-icons mdc-card__action mdc-card__action--icon--unbounded"
+                    title="Share"
+                    data-mdc-ripple-is-unbounded="true"
+                  >
+                    share
+                  </button>
+                  <button
+                    class="mdc-icon-button material-icons mdc-card__action mdc-card__action--icon--unbounded"
+                    title="More options"
+                    data-mdc-ripple-is-unbounded="true"
+                  >
+                    more_vert
+                  </button>
+                </div>
+ -->              </div>
+            </div>
+            <img class="kc_img kc_masked" align="right" src="${image}" />
+            <ha-icon icon="${icon}" style="position: absolute; right: 10px; ${dflag}"></ha-icon>
+          </td></tr>
+        `);
+      }
+    }
     return html`
-      <ha-card
-        @action=${this._handleAction}
-        .actionHandler=${actionHandler({
+          <ha-card
+            .actionHandler=${actionHandler({
       hasHold: hasAction(this._config.hold_action),
       hasDoubleTap: hasAction(this._config.double_tap_action),
       repeat: this._config.hold_action ? this._config.hold_action.repeat : undefined,
     })}
-        tabindex="0"
-      >
-        <div class="kc_front">
-          <div class="">
-            <h2 class="">Our Changing Planet</h2>
-            <h3 class="">by Kurt Wagner</h3>
-          </div>
-          <div>
-            <div>
-              <mwc-button>Read</mwc-button>
-              <mwc-button>Bookmark</mwc-button>
-            </div>
-            <div>
-              <paper-icon-button icon="mdi:heart-outline" title="Add to favorites"></paper-icon-button>
-              <button
-                class="mdc-icon-button material-icons mdc-card__action mdc-card__action--icon--unbounded"
-                title="Share"
-                data-mdc-ripple-is-unbounded="true"
-              >
-                share
-              </button>
-              <button
-                class="mdc-icon-button material-icons mdc-card__action mdc-card__action--icon--unbounded"
-                title="More options"
-                data-mdc-ripple-is-unbounded="true"
-              >
-                more_vert
-              </button>
-            </div>
-          </div>
-        </div>
-        <div class="kc_back kc_masked">
-          <img width="100%" height="100%" align="right"src="https://material-components.github.io/material-components-web-catalog/static/media/photos/3x2/2.jpg" />
-        </div>
-      </ha-card>
+            tabindex="0"
+          >
+            <table class="kc_table">
+              ${HTML.map((item) => item)}
+            </table>
+          </ha-card>
     `;
   }
 
@@ -210,17 +349,76 @@ export class MediaCard extends LitElement {
     }
   }
 
+  private _handleDeleteButton(ev: MouseEvent): void {
+    if (this.hass && this._config) {
+      const id = (ev.currentTarget as any).id;
+      const type = (ev.currentTarget as any).type;
+      this.hass.callService("kodi", "remove", {
+        id: id, type: type
+      });
+    }
+  }
+
+  private _openURL(ev: MouseEvent): void {
+    if (this.hass && this._config) {
+      const url = (ev.currentTarget as any).url;
+      window.open(url, "_blank");
+    }
+  }
+
   static get styles(): CSSResult {
     return css`
+      .kc_a:hover {
+        text-decoration: underline;
+      }
+      .kc_text_small {
+        color: var(--primary-text-color);
+        font-size: 12px;
+        text-decoration: none;
+      }
+      .kc_text_medium {
+        color: var(--primary-text-color);
+        font-size: 14px;
+        text-decoration: none;
+      }
+      .kc_text_large {
+        color: var(--primary-text-color);
+        font-size: 16px;
+        font-weight: 600;
+        text-decoration: none;
+      }
+      .kc_container {
+        width:100%;
+        overflow:auto;
+        margin-left: auto;
+        margin-right: auto;
+        margin-bottom: 10px;
+        background-repeat:no-repeat;
+        background-size:auto 100%;
+        position:relative;
+      }
       .kc_back {
-        position: absolute;
+/*         position: relative;
         z-index: -1;
-        height: 200px;
+ */
       }
       .kc_front {
         position: absolute;
-        z-index: 1;
+        margin-top: 5px;
+        margin-left: 10px;
+        //z-index: 1;
       }
+      .kc_table {
+        width: 100%;
+        border-spacing: 0px 5px;
+      }
+      .kc_td {
+        background-position: content;
+        border-collapse: collapse;
+        padding: 3px;
+        -webkit-box-shadow: 2px 2px 3px 2px rgba(0,0,0,0.50);
+        -moz-box-shadow: 2px 2px 3px 2px rgba(0,0,0,0.50);
+        box-shadow: 2px 2px 3px 2px rgba(0,0,0,0.50);     }
       .kc_semi_opaque {
         opacity: 25%;
       }
@@ -229,11 +427,10 @@ export class MediaCard extends LitElement {
       }
       .kc_masked {
         -webkit-mask-image: linear-gradient(to left, rgba(0, 0, 0, 1.0), transparent);
+        mask-image: linear-gradient(to left, rgba(0, 0, 0, 1.0), transparent);
       }
-      .kc_background_img {
-        background-image: url("https://material-components.github.io/material-components-web-catalog/static/media/photos/3x2/2.jpg");
-        //background-position: content;
-        min-height: 100px;
+      .kc_img {
+        height: 140px;
       }
       .kc_warning {
         display: block;
@@ -241,6 +438,10 @@ export class MediaCard extends LitElement {
         background-color: #fce588;
         padding: 8px;
       }
-    `;
+      `;
+  }
+
+  public getCardSize(): number {
+    return this.cardSize;
   }
 }
