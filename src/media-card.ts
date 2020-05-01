@@ -35,7 +35,8 @@ function loadCSS(url): void {
 
 //loadCSS('https://unpkg.com/material-components-web@latest/dist/material-components-web.min.css');
 
-// TODO Name your custom element
+const ENTER_KEY = 13;
+
 @customElement('media-card')
 export class MediaCard extends LitElement {
   cardSize = 0;
@@ -89,15 +90,12 @@ export class MediaCard extends LitElement {
     }
 
     const json = JSON.parse(stateObj.attributes.data);
-    if (!json || !json[1]) return;
+    if (!json || !json[0]) return;
 
     const view = this._config.image_style || "fanart";
     const dateform = this._config.date || "mmdd";
-    const icon = this._config.icon || json[0]["icon"];
-    const icon_hide = this._config.icon == "none" ? "display:none;" : "";
-    const icon_color = this._config.icon_color || "white";
-    const flag_color = this._config.flag_color || "var(--primary-color)";
-    const flag = this._config.flag == undefined ? true : this._config.flag;
+    const flag_color = this._config.flag_color || "rgba(250, 250, 250, 50%)";
+    const bflag = "background-color: " + flag_color + ";";
     const timeform = {
       hour12: this._config.clock != 24,
       hour: "2-digit",
@@ -160,7 +158,7 @@ export class MediaCard extends LitElement {
       if (text.length > chars) {
         for (let i = chars; i > 0; i--) {
           if (
-            text.charAt(i).match(/( |:|-|;|"|'|,)/) &&
+            text.charAt(i).match(/( |:|-|;|"|'|,|.)/) &&
             text.charAt(i - 1).match(/[a-zA-Z0-9_]/)
           ) {
             return `${text.substring(0, i)}...`;
@@ -187,11 +185,11 @@ export class MediaCard extends LitElement {
         // Match date string. ie: 2018-10-31
       } else if (String(input_date).match(/\d+[-]\d+[-]\d+/)) {
         input_date = input_date.split("-");
-        fd_month = input_date[1];
         fd_day = input_date[2];
-        fd_year = input_date[3];
+        fd_month = input_date[1];
+        fd_year = input_date[0];
       } else {
-        return "";
+        return input_date;
       }
       if (dateform == "ddmm") return `${fd_day}/${fd_month}/${fd_year}`;
       else return `${fd_month}/${fd_day}/${fd_year}`;
@@ -205,7 +203,6 @@ export class MediaCard extends LitElement {
       if (this._config.hide_flagged && item("flag")) continue;
       else if (this._config.hide_unflagged && !item("flag")) continue;
       const airdate = new Date(item("airdate"));
-      const dflag = item("flag") && flag ? "color: " + icon_color + ";" : "display:none;";
       const image =
         view == "poster" ? item("poster") : item("fanart") || item("poster");
       const daysBetween = Math.round(
@@ -241,7 +238,7 @@ export class MediaCard extends LitElement {
         $genres: item("genres") || null,
         $number: item("number") || null,
         $rating: item("rating") || null,
-        $release: item("release") || null,
+        $release: format_date(item("release")) || null,
         $studio: item("studio") || null,
         $runtime: runtime || null,
         $day: day || null,
@@ -268,6 +265,7 @@ export class MediaCard extends LitElement {
         // Replacing twice to get keywords in component generated strings
         tfull[i] = filtered.join(" - ").replace(keywords, val => keys[val]);
         line[i] = truncate(tfull[i], tsize[i]);
+
       }
 
       let tlink = "";
@@ -278,12 +276,37 @@ export class MediaCard extends LitElement {
       if (global_link.length > 0) {
         glink = global_link.replace(keywords, val => keys[val]);
       }
+      let isremovable = true;
+      if (item("type") === "tvshow") {
+        isremovable = false;
+      }
+
+      let icon = "mdi:check";
+      let icon_color = "darkgreen";
+      let icon_hide = this._config.icon_hide || false;
+
+      const progress = item("progress")
+      if (progress == 0) {
+        icon_hide = true;
+      } else if (progress < 100) {
+        icon_color = "tomato";
+        icon = "mdi:progress-check"
+      }
 
       if (view == "poster") {
       } else {
         HTML.push(html`
           <!-- <tr><td class="kc_td" style="background-image: linear-gradient(to left, rgba(0, 0, 0, 1.0), transparent), url(${image});"> -->
-          <tr><td class="kc_td">
+          <tr>
+          <td colspan="2" class="kc_td"
+                  @action=${this._handleAction}
+                    .item="${json[count]}"
+                    .actionHandler=${actionHandler({
+          hasHold: hasAction(this._config.hold_action),
+          hasDoubleTap: hasAction(this._config.double_tap_action),
+          repeat: this._config.hold_action ? this._config.hold_action.repeat : undefined,
+        })}
+          >
             <div class="kc_front">
               <div class="">
                 ${line.map((_item, i) => html`
@@ -295,12 +318,20 @@ export class MediaCard extends LitElement {
                   ${tlink != "null" && tlink.length > 0 ? html`<mwc-button .url="${tlink}" @click="${this._openURL}">Details</mwc-button>` : html``}
                   ${glink != "null" && glink.length > 0 ? html`<mwc-button .url="${glink}" @click="${this._openURL}">Launch</mwc-button>` : html``}
                   <mwc-button
-                  .id="${item("id")}"
-                  .type="${item("type")}"
-                  @click="${this._handleDeleteButton}"
-                  >
-                    Delete
+                    .url="${item("info_url")}"
+                    @click="${this._handleInfoButton}"
+                    >
+                      Info
                   </mwc-button>
+                 ${isremovable ? html`
+                    <mwc-button
+                    .id="${item("id")}"
+                    .type="${item("type")}"
+                    @click="${this._handleDeleteButton}"
+                    >
+                      Delete
+                    </mwc-button>
+                  ` : html``}
                 </div>
 <!--                 <div>
                   <paper-icon-button icon="mdi:heart-outline" title="Add to favorites"></paper-icon-button>
@@ -322,21 +353,50 @@ export class MediaCard extends LitElement {
  -->              </div>
             </div>
             <img class="kc_img kc_masked" align="right" src="${image}" />
-            <ha-icon icon="${icon}" style="position: absolute; right: 10px; ${dflag}"></ha-icon>
+            <div style="position: relative;">
+              ${icon_hide ? html`` : html`
+                <ha-icon icon="${icon}" class="kc_icon_indic" style="position: absolute; right: 10px; top: 5px; color: ${icon_color}; ${bflag};"></ha-icon>
+                `}
+            </div>
           </td></tr>
         `);
       }
     }
+
+    const pl_json = JSON.parse(stateObj.attributes.playlists);
+
     return html`
           <ha-card
-            .actionHandler=${actionHandler({
-      hasHold: hasAction(this._config.hold_action),
-      hasDoubleTap: hasAction(this._config.double_tap_action),
-      repeat: this._config.hold_action ? this._config.hold_action.repeat : undefined,
-    })}
             tabindex="0"
           >
             <table class="kc_table">
+              <tr>
+                <td style="padding: 10px;" width="40%">
+                  <paper-input
+                    label="Search"
+                    @keypress=${({ target, keyCode }) => { if (keyCode === ENTER_KEY) this._search(target.value); }}
+                    no-label-float
+                  ></paper-input>
+                </td>
+                <td style="padding: 10px;">
+                  <paper-dropdown-menu style="width: 100%"
+                      label="Playlist"
+                      no-label-float
+                  >
+                    <paper-listbox style="width: 100%"
+                      slot="dropdown-content"
+                      .selected=${stateObj.attributes.playlist}
+                      attr-for-selected="item-name"
+                      @selected-item-changed=${this._set_playlist}
+                    >
+                      ${pl_json.sort().map((pl) => html`<paper-item item-name=${pl["path"]}>${pl["name"]}</paper-item>`)}
+                    </paper-listbox>
+                  </paper-dropdown-menu>
+                  <div style="position: absolute; font-size: 8px; right: 10px">
+                    ${stateObj.attributes.num_items} / ${stateObj.attributes.total_items}
+                  </div>
+                </td>
+              </tr>
               ${HTML.map((item) => item)}
             </table>
           </ha-card>
@@ -345,17 +405,56 @@ export class MediaCard extends LitElement {
 
   private _handleAction(ev: ActionHandlerEvent): void {
     if (this.hass && this._config && ev.detail.action) {
+      const stateObj = this.hass.states[this._config.entity];
+      stateObj.attributes.cur_item = (ev.currentTarget as any).item
       handleAction(this, this.hass, this._config, ev.detail.action);
+    }
+  }
+
+  private _set_playlist(ev): void {
+    if (!this.hass || !this._config || ev.target.selected === "")
+      return;
+
+    const stateObj = this.hass.states[this._config.entity];
+    if (stateObj.attributes.playlist === ev.target.selected)
+      return;
+
+    this.hass.callService("kodi", "set_playlist", {
+      playlist: ev.target.selected
+    });
+  }
+
+  private _search(text: string): void {
+    if (this.hass && this._config) {
+
+      const stateObj = this.hass.states[this._config.entity];
+      if (stateObj.attributes.last_search === text)
+        return;
+
+      this.hass.callService("kodi", "search", {
+        text: text
+      });
     }
   }
 
   private _handleDeleteButton(ev: MouseEvent): void {
     if (this.hass && this._config) {
+      if (!confirm(`Are you sure you want to delete this item?`)) {
+        return;
+      }
+
       const id = (ev.currentTarget as any).id;
       const type = (ev.currentTarget as any).type;
       this.hass.callService("kodi", "remove", {
         id: id, type: type
       });
+    }
+  }
+
+  private _handleInfoButton(ev: MouseEvent): void {
+    if (this.hass && this._config) {
+      const url = (ev.currentTarget as any).url;
+      this.hass.callService("kodi", "view_info", { url: url });
     }
   }
 
@@ -368,6 +467,12 @@ export class MediaCard extends LitElement {
 
   static get styles(): CSSResult {
     return css`
+      .kc_icon_indic {
+        height: 27px;
+        width: 27px;
+        border-radius: 50%;
+        display: inline-block;
+      }
       .kc_a:hover {
         text-decoration: underline;
       }
@@ -406,7 +511,7 @@ export class MediaCard extends LitElement {
         position: absolute;
         margin-top: 5px;
         margin-left: 10px;
-        //z-index: 1;
+        z-index: 1;
       }
       .kc_table {
         width: 100%;
@@ -426,8 +531,8 @@ export class MediaCard extends LitElement {
         opacity: 100%;
       }
       .kc_masked {
-        -webkit-mask-image: linear-gradient(to left, rgba(0, 0, 0, 1.0), transparent);
-        mask-image: linear-gradient(to left, rgba(0, 0, 0, 1.0), transparent);
+        -webkit-mask-image: linear-gradient(to left, rgba(0, 0, 0, 1.0) 60%, transparent);
+        mask-image: linear-gradient(to left, rgba(0, 0, 0, 1.0) 60%, transparent);
       }
       .kc_img {
         height: 140px;

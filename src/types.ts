@@ -20,8 +20,7 @@ export interface MediaCardConfig {
   hide_unflagged?: boolean;
   flag?: boolean;
   flag_color?: string;
-  icon?: string;
-  icon_color?: string;
+  icon_hide?: boolean;
 
   title_text?: string;
   line1_text?: string;
