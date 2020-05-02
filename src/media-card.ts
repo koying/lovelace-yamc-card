@@ -9,8 +9,11 @@ import {
   LovelaceCardEditor,
   getLovelace,
 } from 'custom-card-helpers';
+import { popUp, closePopUp } from "lovelace-card-tools/src/popup";
 
 import './editor';
+import './media-card-more-info'
+import './media-card-details'
 
 import { MediaCardConfig } from './types';
 import { actionHandler } from './action-handler-directive';
@@ -24,16 +27,6 @@ console.info(
   'color: orange; font-weight: bold; background: black',
   'color: white; font-weight: bold; background: dimgray',
 );
-
-function loadCSS(url): void {
-  const link = document.createElement('link');
-  link.type = 'text/css';
-  link.rel = 'stylesheet';
-  link.href = url;
-  document.head.appendChild(link);
-}
-
-//loadCSS('https://unpkg.com/material-components-web@latest/dist/material-components-web.min.css');
 
 const ENTER_KEY = 13;
 
@@ -313,44 +306,6 @@ export class MediaCard extends LitElement {
                   <div class="kc_text_${tsize[i]}" title="${tfull[i]}">${line[i].match("empty") ? html`<br/>` : line[i]}</div>
                 `)}
               </div>
-              <div>
-                <div>
-                  ${tlink != "null" && tlink.length > 0 ? html`<mwc-button .url="${tlink}" @click="${this._openURL}">Details</mwc-button>` : html``}
-                  ${glink != "null" && glink.length > 0 ? html`<mwc-button .url="${glink}" @click="${this._openURL}">Launch</mwc-button>` : html``}
-                  <mwc-button
-                    .url="${item("info_url")}"
-                    @click="${this._handleInfoButton}"
-                    >
-                      Info
-                  </mwc-button>
-                 ${isremovable ? html`
-                    <mwc-button
-                    .id="${item("id")}"
-                    .type="${item("type")}"
-                    @click="${this._handleDeleteButton}"
-                    >
-                      Delete
-                    </mwc-button>
-                  ` : html``}
-                </div>
-<!--                 <div>
-                  <paper-icon-button icon="mdi:heart-outline" title="Add to favorites"></paper-icon-button>
-                  <button
-                    class="mdc-icon-button material-icons mdc-card__action mdc-card__action--icon--unbounded"
-                    title="Share"
-                    data-mdc-ripple-is-unbounded="true"
-                  >
-                    share
-                  </button>
-                  <button
-                    class="mdc-icon-button material-icons mdc-card__action mdc-card__action--icon--unbounded"
-                    title="More options"
-                    data-mdc-ripple-is-unbounded="true"
-                  >
-                    more_vert
-                  </button>
-                </div>
- -->              </div>
             </div>
             <img class="kc_img kc_masked" align="right" src="${image}" />
             <div style="position: relative;">
@@ -392,7 +347,7 @@ export class MediaCard extends LitElement {
                       ${pl_json.sort().map((pl) => html`<paper-item item-name=${pl["path"]}>${pl["name"]}</paper-item>`)}
                     </paper-listbox>
                   </paper-dropdown-menu>
-                  <div style="position: absolute; font-size: 8px; right: 10px">
+                  <div style="position: absolute; font-size: 8px; line-height: 10px; right: 10px">
                     ${stateObj.attributes.num_items} / ${stateObj.attributes.total_items}
                   </div>
                 </td>
@@ -407,7 +362,10 @@ export class MediaCard extends LitElement {
     if (this.hass && this._config && ev.detail.action) {
       const stateObj = this.hass.states[this._config.entity];
       stateObj.attributes.cur_item = (ev.currentTarget as any).item
-      handleAction(this, this.hass, this._config, ev.detail.action);
+      popUp(`${stateObj.attributes.cur_item.title} (${stateObj.attributes.cur_item.aired})`,
+        { type: "custom:media-card-details", entity: this._config.entity }
+      )
+      //handleAction(this, this.hass, this._config, ev.detail.action);
     }
   }
 
@@ -437,34 +395,6 @@ export class MediaCard extends LitElement {
     }
   }
 
-  private _handleDeleteButton(ev: MouseEvent): void {
-    if (this.hass && this._config) {
-      if (!confirm(`Are you sure you want to delete this item?`)) {
-        return;
-      }
-
-      const id = (ev.currentTarget as any).id;
-      const type = (ev.currentTarget as any).type;
-      this.hass.callService("kodi", "remove", {
-        id: id, type: type
-      });
-    }
-  }
-
-  private _handleInfoButton(ev: MouseEvent): void {
-    if (this.hass && this._config) {
-      const url = (ev.currentTarget as any).url;
-      this.hass.callService("kodi", "view_info", { url: url });
-    }
-  }
-
-  private _openURL(ev: MouseEvent): void {
-    if (this.hass && this._config) {
-      const url = (ev.currentTarget as any).url;
-      window.open(url, "_blank");
-    }
-  }
-
   static get styles(): CSSResult {
     return css`
       .kc_icon_indic {
@@ -479,16 +409,19 @@ export class MediaCard extends LitElement {
       .kc_text_small {
         color: var(--primary-text-color);
         font-size: 12px;
+        line-height: 14px;
         text-decoration: none;
       }
       .kc_text_medium {
         color: var(--primary-text-color);
         font-size: 14px;
+        line-height: 16px;
         text-decoration: none;
       }
       .kc_text_large {
         color: var(--primary-text-color);
         font-size: 16px;
+        line-height: 18px;
         font-weight: 600;
         text-decoration: none;
       }
@@ -535,7 +468,7 @@ export class MediaCard extends LitElement {
         mask-image: linear-gradient(to left, rgba(0, 0, 0, 1.0) 60%, transparent);
       }
       .kc_img {
-        height: 140px;
+        height: 105px;
       }
       .kc_warning {
         display: block;
@@ -547,7 +480,7 @@ export class MediaCard extends LitElement {
   }
 
   public getCardSize(): number {
-    return 10;
-    //return this.cardSize;
+    //return 10;
+    return this.cardSize * 2;
   }
 }

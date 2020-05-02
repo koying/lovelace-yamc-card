@@ -1,6 +1,13 @@
 import { ActionConfig } from 'custom-card-helpers';
 
 // TODO Add your configuration elements here for type-checking
+
+export interface MediaCardDetailsConfig {
+  type: string;
+  name?: string;
+  entity: string;
+}
+
 export interface MediaCardConfig {
   type: string;
   name?: string;
