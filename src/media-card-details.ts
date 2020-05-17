@@ -5,6 +5,7 @@ import { css, CSSResult, customElement, html, LitElement, property, TemplateResu
 import { HomeAssistant } from 'custom-card-helpers';
 import { MediaCardDetailsConfig } from './types';
 import { localize } from './localize/localize';
+import { popUp, closePopUp } from "lovelace-card-tools/src/popup";
 
 @customElement('media-card-details')
 class MediaCardDetails extends LitElement {
@@ -31,6 +32,10 @@ class MediaCardDetails extends LitElement {
         const stateObj = this.hass.states[this._config.entity];
 
         const item = stateObj.attributes.cur_item
+        if (!item) {
+            return html``;
+        }
+
         const tlink = item.imdb_url;
         const glink = item.vfs_url;
         let isremovable = true;
@@ -47,7 +52,7 @@ class MediaCardDetails extends LitElement {
             <img class="kc_img" src="${item.fanart}" />
             <div class="kc_buttons">
                   ${tlink != "null" && tlink.length > 0 ? html`<mwc-button .url="${tlink}" @click="${this._openURL}">Details</mwc-button>` : html``}
-                  ${glink != "null" && glink.length > 0 ? html`<mwc-button .url="${glink}" @click="${this._openURL}">Launch</mwc-button>` : html``}
+                  ${glink != "null" && glink.length > 0 ? html`<mwc-button .url="${glink}" @click="${this._launchURL}">Launch</mwc-button>` : html``}
                   <mwc-button
                     .url="${item.info_url}"
                     @click="${this._handleInfoButton}"
@@ -79,6 +84,7 @@ class MediaCardDetails extends LitElement {
             this.hass.callService("kodi", "remove", {
                 id: id, type: type
             });
+            closePopUp();
         }
     }
 
@@ -86,6 +92,7 @@ class MediaCardDetails extends LitElement {
         if (this.hass) {
             const url = (ev.currentTarget as any).url;
             this.hass.callService("kodi", "view_info", { url: url });
+            closePopUp();
         }
     }
 
@@ -93,6 +100,15 @@ class MediaCardDetails extends LitElement {
         if (this.hass) {
             const url = (ev.currentTarget as any).url;
             window.open(url, "_blank");
+            closePopUp();
+        }
+    }
+
+    private _launchURL(ev: MouseEvent): void {
+        if (this.hass) {
+            const url = (ev.currentTarget as any).url;
+            window.open(url, "_self");
+            closePopUp();
         }
     }
 

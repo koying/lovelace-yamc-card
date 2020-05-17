@@ -14,6 +14,7 @@ import { popUp, closePopUp } from "lovelace-card-tools/src/popup";
 import './editor';
 import './media-card-more-info'
 import './media-card-details'
+import './vaadin-pagination.js';
 
 import { MediaCardConfig } from './types';
 import { actionHandler } from './action-handler-directive';
@@ -261,19 +262,6 @@ export class MediaCard extends LitElement {
 
       }
 
-      let tlink = "";
-      if (text_link.length > 0) {
-        tlink = text_link.replace(keywords, val => keys[val]);
-      }
-      let glink = "";
-      if (global_link.length > 0) {
-        glink = global_link.replace(keywords, val => keys[val]);
-      }
-      let isremovable = true;
-      if (item("type") === "tvshow") {
-        isremovable = false;
-      }
-
       let icon = "mdi:check";
       let icon_color = "darkgreen";
       let icon_hide = this._config.icon_hide || false;
@@ -326,14 +314,14 @@ export class MediaCard extends LitElement {
           >
             <table class="kc_table">
               <tr>
-                <td style="padding: 10px;" width="40%">
+                <td style="padding: 10px 10px 3px;" width="40%">
                   <paper-input
                     label="Search"
                     @keypress=${({ target, keyCode }) => { if (keyCode === ENTER_KEY) this._search(target.value); }}
                     no-label-float
                   ></paper-input>
                 </td>
-                <td style="padding: 10px;">
+                <td style="padding: 10px 10px 3px;">
                   <paper-dropdown-menu style="width: 100%"
                       label="Playlist"
                       no-label-float
@@ -347,11 +335,25 @@ export class MediaCard extends LitElement {
                       ${pl_json.sort().map((pl) => html`<paper-item item-name=${pl["path"]}>${pl["name"]}</paper-item>`)}
                     </paper-listbox>
                   </paper-dropdown-menu>
-                  <div style="position: absolute; font-size: 8px; line-height: 10px; right: 10px">
-                    ${stateObj.attributes.num_items} / ${stateObj.attributes.total_items}
+                  <div style="position: absolute; font-size: 8px; line-height: 10px; top: 60px; right: 10px">
+                    ${((stateObj.attributes.page - 1) * stateObj.attributes.page_size) + 1}-${Math.min(((stateObj.attributes.page) * stateObj.attributes.page_size), stateObj.attributes.total_items)}
+                     / ${stateObj.attributes.total_items}
                   </div>
-                </td>
+                  </td>
               </tr>
+              ${stateObj.attributes.total_items > stateObj.attributes.page_size ? html`
+                  <tr>
+                    <td colspan=2 align="center">
+                      <vaadin-pagination
+                        page=${stateObj.attributes.page}
+                        total=${stateObj.attributes.total_items}
+                        limit=${stateObj.attributes.page_size}
+                        size=3
+                        @page-change=${this._onPageChanged}
+                        ></vaadin-pagination>
+                      </td>
+                  </tr>
+                  ` : html``}
               ${HTML.map((item) => item)}
             </table>
           </ha-card>
@@ -367,6 +369,16 @@ export class MediaCard extends LitElement {
       )
       //handleAction(this, this.hass, this._config, ev.detail.action);
     }
+  }
+
+  private _onPageChanged(ev): void {
+    if (!this.hass || !this._config)
+      return;
+
+    console.log("NewPage", ev.detail.newPage);
+    this.hass.callService("kodi", "set_page", {
+      page: ev.detail.newPage
+    });
   }
 
   private _set_playlist(ev): void {
