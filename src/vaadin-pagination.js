@@ -17,18 +17,14 @@ class VaadinPagination extends LitElement {
       }
 
       :host paper-button {
-        margin: 0px 4px;
-        padding: 2px 8px;
-        /*margin: 0px;*/
-        display: inline-block;
-        position: relative;
-        min-width: fit-content;
-      }
-
-      :host paper-button {
         color: var(--primary-text-color);
         background-color: transparent;
-        border-radius: 16px;
+        border-radius: 48px;
+        display: inline-block;
+        width: 24px;
+        height: 24px;
+        padding: 12px;
+        vertical-align: top;
       }
 
       :host paper-button[disabled] {
@@ -169,16 +165,16 @@ class VaadinPagination extends LitElement {
       </iron-iconset-svg>
 
       <div class="paginator-page-container" ?hidden="${!this.hasPage}">
-        <paper-icon-button
+        <ha-icon-button
           icon="mdi:skip-backward"
           @click="${event => this.onBegin()}"
           ?hidden="${!this.hasBefore}"
-        ></paper-icon-button>
-        <paper-icon-button
+        ></ha-icon-button>
+        <ha-icon-button
           icon="mdi:chevron-left"
           @click="${event => this.onBefore()}"
           ?hidden="${!this.hasBefore}"
-        ></paper-icon-button>
+        ></ha-icon-button>
         ${this.items.map(
           item => html`
             <paper-button
@@ -191,16 +187,16 @@ class VaadinPagination extends LitElement {
           `,
         )}
 
-        <paper-icon-button
+        <ha-icon-button
           icon="mdi:chevron-right"
           @click=${event => this.onNext()}
           ?hidden="${!this.hasNext}"
-        ></paper-icon-button>
-        <paper-icon-button
+        ></ha-icon-button>
+        <ha-icon-button
           icon="mdi:skip-forward"
           @click=${event => this.onEnd()}
           ?hidden="${!this.hasNext}"
-        ></paper-icon-button>
+        ></ha-icon-button>
       </div>
     `;
   }
