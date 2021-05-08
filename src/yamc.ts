@@ -12,8 +12,8 @@ import {
 import { popUp, closePopUp } from "card-tools/src/popup";
 
 import './editor';
-import './media-card-more-info'
-import './media-card-details'
+import './yamc-more-info'
+import './yamc-details'
 import './vaadin-pagination.js';
 
 import { MediaCardConfig } from './types';
@@ -24,14 +24,14 @@ import { localize } from './localize/localize';
 
 /* eslint no-console: 0 */
 console.info(
-  `%c  MEDIA-CARD \n%c  ${localize('common.version')} ${CARD_VERSION}    `,
+  `%c  YAMC \n%c  ${localize('common.version')} ${CARD_VERSION}    `,
   'color: orange; font-weight: bold; background: black',
   'color: white; font-weight: bold; background: dimgray',
 );
 
 const ENTER_KEY = 13;
 
-@customElement('media-card')
+@customElement('yamc')
 export class MediaCard extends LitElement {
   cardSize = 0;
   @property() private _helpers?: any;
@@ -44,7 +44,7 @@ export class MediaCard extends LitElement {
   }
 
   public static async getConfigElement(): Promise<LovelaceCardEditor> {
-    return document.createElement('media-card-editor') as LovelaceCardEditor;
+    return document.createElement('yamc-editor') as LovelaceCardEditor;
   }
 
   public static getStubConfig(): object {
@@ -359,7 +359,7 @@ export class MediaCard extends LitElement {
       const stateObj = this.hass.states[this._config.entity];
       stateObj.attributes.cur_item = (ev.currentTarget as any).item
       popUp(`${stateObj.attributes.cur_item.title} (${stateObj.attributes.cur_item.aired})`,
-        { type: "custom:media-card-details", entity: this._config.entity }
+        { type: "custom:yamc-details", entity: this._config.entity }
       )
       //handleAction(this, this.hass, this._config, ev.detail.action);
     }

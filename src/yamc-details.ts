@@ -3,19 +3,39 @@
 import { HassEntity } from 'home-assistant-js-websocket';
 import { css, CSSResult, customElement, html, LitElement, property, TemplateResult } from 'lit-element';
 import { HomeAssistant } from 'custom-card-helpers';
+import { MediaCardDetailsConfig } from './types';
+import { localize } from './localize/localize';
+import { popUp, closePopUp } from "card-tools/src/popup";
 
-@customElement('media-card-more-info')
-class MoreInfoMediaCard extends LitElement {
-    @property() public hass!: HomeAssistant;
+@customElement('yamc-details')
+class MediaCardDetails extends LitElement {
+    @property() public hass?: HomeAssistant;
+    @property() private _config?: MediaCardDetailsConfig;
 
-    @property() public stateObj?: HassEntity;
+    public setConfig(config: MediaCardDetailsConfig): void {
+        // TODO Check for required fields and that they are of the proper format
+        if (!config) {
+            throw new Error(localize('common.invalid_configuration'));
+        }
+
+        this._config = {
+            name: 'MediaCardDetails',
+            ...config,
+        };
+    }
 
     protected render(): TemplateResult {
-        if (!this.hass || !this.stateObj) {
+        if (!this.hass || !this._config) {
             return html``;
         }
 
-        const item = this.stateObj.attributes.cur_item
+        const stateObj = this.hass.states[this._config.entity];
+
+        const item = stateObj.attributes.cur_item
+        if (!item) {
+            return html``;
+        }
+
         const tlink = item.imdb_url;
         const glink = item.vfs_url;
         let isremovable = true;
@@ -25,14 +45,14 @@ class MoreInfoMediaCard extends LitElement {
 
         // return html` <ha-attributes .stateObj=${this.stateObj}></ha-attributes> `;
         return html`
-            <div class="actions">
+            <div class="wrapper">
             <div class="kc_front">
-                <div class="kc_text_large" title="${item.title}">${item.title}</div>
+                <div class="kc_text_medium" title="${item.tagline}">${item.tagline}</div>
             </div>
             <img class="kc_img" src="${item.fanart}" />
-            <div>
+            <div class="kc_buttons">
                   ${tlink != "null" && tlink.length > 0 ? html`<mwc-button .url="${tlink}" @click="${this._openURL}">Details</mwc-button>` : html``}
-                  ${glink != "null" && glink.length > 0 ? html`<mwc-button .url="${glink}" @click="${this._openURL}">Launch</mwc-button>` : html``}
+                  ${glink != "null" && glink.length > 0 ? html`<mwc-button .url="${glink}" @click="${this._launchURL}">Launch</mwc-button>` : html``}
                   <mwc-button
                     .url="${item.info_url}"
                     @click="${this._handleInfoButton}"
@@ -53,13 +73,6 @@ class MoreInfoMediaCard extends LitElement {
     `;
     }
 
-    private _handleActionClick(e: MouseEvent): void {
-        const action = (e.currentTarget as any).action;
-        this.hass.callService('counter', action, {
-            entity_id: this.stateObj!.entity_id,
-        });
-    }
-
     private _handleDeleteButton(ev: MouseEvent): void {
         if (this.hass) {
             if (!confirm(`Are you sure you want to delete this item?`)) {
@@ -71,6 +84,7 @@ class MoreInfoMediaCard extends LitElement {
             this.hass.callService("kodi", "remove", {
                 id: id, type: type
             });
+            closePopUp();
         }
     }
 
@@ -78,6 +92,7 @@ class MoreInfoMediaCard extends LitElement {
         if (this.hass) {
             const url = (ev.currentTarget as any).url;
             this.hass.callService("kodi", "view_info", { url: url });
+            closePopUp();
         }
     }
 
@@ -85,17 +100,30 @@ class MoreInfoMediaCard extends LitElement {
         if (this.hass) {
             const url = (ev.currentTarget as any).url;
             window.open(url, "_blank");
+            closePopUp();
+        }
+    }
+
+    private _launchURL(ev: MouseEvent): void {
+        if (this.hass) {
+            const url = (ev.currentTarget as any).url;
+            window.open(url, "_self");
+            closePopUp();
         }
     }
 
     static get styles(): CSSResult {
         return css`
-      .actions {
-        margin: 0 8px;
+      .wrapper {
+        margin: 0px 20px 8px;
         padding-top: 10px;
         display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
+        flex-direction: column;
+        align-content: center;
+        overflow-x: hidden;
+      }
+      .kc_buttons {
+          align-self: center;
       }
       .kc_text_large {
         color: var(--primary-text-color);
@@ -103,12 +131,22 @@ class MoreInfoMediaCard extends LitElement {
         font-weight: 600;
         text-decoration: none;
       }
+      .kc_text_medium {
+        color: var(--primary-text-color);
+        font-size: 14px;
+        line-height: 16px;
+        text-decoration: none;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        text-align: left;
+        align-self: left;
+      }
       .kc_masked {
         -webkit-mask-image: linear-gradient(to left, rgba(0, 0, 0, 1.0) 60%, transparent);
         mask-image: linear-gradient(to left, rgba(0, 0, 0, 1.0) 60%, transparent);
       }
       .kc_img {
-        width: 300px;
+        width: 100%;
         margin: 8px 0px;
       }
 
@@ -116,8 +154,3 @@ class MoreInfoMediaCard extends LitElement {
     }
 }
 
-declare global {
-    interface HTMLElementTagNameMap {
-        'media-card-more-info': MoreInfoMediaCard;
-    }
-}
