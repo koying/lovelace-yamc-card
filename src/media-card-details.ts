@@ -5,7 +5,7 @@ import { css, CSSResult, customElement, html, LitElement, property, TemplateResu
 import { HomeAssistant } from 'custom-card-helpers';
 import { MediaCardDetailsConfig } from './types';
 import { localize } from './localize/localize';
-import { popUp, closePopUp } from "lovelace-card-tools/src/popup";
+import { popUp, closePopUp } from "card-tools/src/popup";
 
 @customElement('media-card-details')
 class MediaCardDetails extends LitElement {

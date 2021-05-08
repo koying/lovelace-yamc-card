@@ -9,7 +9,7 @@ import {
   LovelaceCardEditor,
   getLovelace,
 } from 'custom-card-helpers';
-import { popUp, closePopUp } from "lovelace-card-tools/src/popup";
+import { popUp, closePopUp } from "card-tools/src/popup";
 
 import './editor';
 import './media-card-more-info'
@@ -34,6 +34,14 @@ const ENTER_KEY = 13;
 @customElement('media-card')
 export class MediaCard extends LitElement {
   cardSize = 0;
+  @property() private _helpers?: any;
+
+  private async loadCardHelpers(): Promise<void> {
+    this._helpers = await (window as any).loadCardHelpers();
+    if (this._helpers) {
+      this._helpers.importMoreInfoControl('light');
+    }
+  }
 
   public static async getConfigElement(): Promise<LovelaceCardEditor> {
     return document.createElement('media-card-editor') as LovelaceCardEditor;
@@ -61,6 +69,7 @@ export class MediaCard extends LitElement {
       name: 'MediaCard',
       ...config,
     };
+    this.loadCardHelpers();
   }
 
   protected shouldUpdate(changedProps: PropertyValues): boolean {
@@ -279,29 +288,26 @@ export class MediaCard extends LitElement {
         HTML.push(html`
           <!-- <tr><td class="kc_td" style="background-image: linear-gradient(to left, rgba(0, 0, 0, 1.0), transparent), url(${image});"> -->
           <tr>
-          <td colspan="2" class="kc_td"
-                  @action=${this._handleAction}
-                    .item="${json[count]}"
-                    .actionHandler=${actionHandler({
-          hasHold: hasAction(this._config.hold_action),
-          hasDoubleTap: hasAction(this._config.double_tap_action),
-          repeat: this._config.hold_action ? this._config.hold_action.repeat : undefined,
-        })}
-          >
-            <div class="kc_front">
-              <div class="">
-                ${line.map((_item, i) => html`
-                  <div class="kc_text_${tsize[i]}" title="${tfull[i]}">${line[i].match("empty") ? html`<br/>` : line[i]}</div>
-                `)}
+            <td colspan="2" class="kc_td" @action=${this._handleAction} .item="${json[count]}" .actionHandler=${actionHandler({
+          hasHold: hasAction(this._config.hold_action), hasDoubleTap: hasAction(this._config.double_tap_action), repeat:
+            this._config.hold_action ? this._config.hold_action.repeat : undefined,
+        })}>
+              <div class="kc_front">
+                <div class="">
+                  ${line.map((_item, i) => html`
+                  <div class="kc_text_${tsize[i]}" title="${tfull[i]}">${line[i].match("empty") ? html`<br />` : line[i]}</div>
+                  `)}
+                </div>
               </div>
-            </div>
-            <img class="kc_img kc_masked" align="right" src="${image}" />
-            <div style="position: relative;">
-              ${icon_hide ? html`` : html`
-                <ha-icon icon="${icon}" class="kc_icon_indic" style="position: absolute; right: 10px; top: 5px; color: ${icon_color}; ${bflag};"></ha-icon>
+              <img class="kc_img kc_masked" align="right" src="${image}" />
+              <div style="position: relative;">
+                ${icon_hide ? html`` : html`
+                <ha-icon icon="${icon}" class="kc_icon_indic"
+                  style="position: absolute; right: 10px; top: 5px; color: ${icon_color}; ${bflag};"></ha-icon>
                 `}
-            </div>
-          </td></tr>
+              </div>
+            </td>
+          </tr>
         `);
       }
     }
@@ -309,51 +315,39 @@ export class MediaCard extends LitElement {
     const pl_json = JSON.parse(stateObj.attributes.playlists);
 
     return html`
-          <ha-card
-            tabindex="0"
-          >
+          <ha-card tabindex="0">
             <table class="kc_table">
               <tr>
                 <td style="padding: 10px 10px 3px;" width="40%">
-                  <paper-input
-                    label="Search"
-                    @keypress=${({ target, keyCode }) => { if (keyCode === ENTER_KEY) this._search(target.value); }}
+                  <paper-input label="Search" @keypress=${({ target, keyCode }) => {
+        if (keyCode === ENTER_KEY)
+          this._search(target.value);
+      }}
                     no-label-float
-                  ></paper-input>
+                    ></paper-input>
                 </td>
                 <td style="padding: 10px 10px 3px;">
-                  <paper-dropdown-menu style="width: 100%"
-                      label="Playlist"
-                      no-label-float
-                  >
-                    <paper-listbox style="width: 100%"
-                      slot="dropdown-content"
-                      .selected=${stateObj.attributes.playlist}
-                      attr-for-selected="item-name"
-                      @selected-item-changed=${this._set_playlist}
-                    >
+                  <paper-dropdown-menu style="width: 100%" label="Playlist" no-label-float>
+                    <paper-listbox style="width: 100%" slot="dropdown-content" .selected=${stateObj.attributes.playlist}
+                      attr-for-selected="item-name" @selected-item-changed=${this._set_playlist}>
                       ${pl_json.sort().map((pl) => html`<paper-item item-name=${pl["path"]}>${pl["name"]}</paper-item>`)}
                     </paper-listbox>
                   </paper-dropdown-menu>
                   <div style="position: absolute; font-size: 8px; line-height: 10px; top: 60px; right: 10px">
-                    ${((stateObj.attributes.page - 1) * stateObj.attributes.page_size) + 1}-${Math.min(((stateObj.attributes.page) * stateObj.attributes.page_size), stateObj.attributes.total_items)}
-                     / ${stateObj.attributes.total_items}
+                    ${((stateObj.attributes.page - 1) * stateObj.attributes.page_size) + 1}-${Math.min(((stateObj.attributes.page)
+        * stateObj.attributes.page_size), stateObj.attributes.total_items)}
+                    / ${stateObj.attributes.total_items}
                   </div>
-                  </td>
+                </td>
               </tr>
               ${stateObj.attributes.total_items > stateObj.attributes.page_size ? html`
-                  <tr>
-                    <td colspan=2 align="center">
-                      <vaadin-pagination
-                        page=${stateObj.attributes.page}
-                        total=${stateObj.attributes.total_items}
-                        limit=${stateObj.attributes.page_size}
-                        size=3
-                        @page-change=${this._onPageChanged}
-                        ></vaadin-pagination>
-                      </td>
-                  </tr>
-                  ` : html``}
+              <tr>
+                <td colspan=2 align="center">
+                  <vaadin-pagination page=${stateObj.attributes.page} total=${stateObj.attributes.total_items}
+                    limit=${stateObj.attributes.page_size} size=3 @page-change=${this._onPageChanged}></vaadin-pagination>
+                </td>
+              </tr>
+              ` : html``}
               ${HTML.map((item) => item)}
             </table>
           </ha-card>
