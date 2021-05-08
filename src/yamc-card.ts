@@ -12,8 +12,8 @@ import {
 import { popUp, closePopUp } from "card-tools/src/popup";
 
 import './editor';
-import './yamc-more-info'
-import './yamc-details'
+import './yamc-card-more-info'
+import './yamc-card-details'
 import './vaadin-pagination.js';
 
 import { MediaCardConfig } from './types';
@@ -31,7 +31,7 @@ console.info(
 
 const ENTER_KEY = 13;
 
-@customElement('yamc')
+@customElement('yamc-card')
 export class MediaCard extends LitElement {
   cardSize = 0;
   @property() private _helpers?: any;
@@ -66,7 +66,7 @@ export class MediaCard extends LitElement {
     }
 
     this._config = {
-      name: 'MediaCard',
+      name: 'YAMC',
       ...config,
     };
     this.loadCardHelpers();
@@ -92,7 +92,7 @@ export class MediaCard extends LitElement {
       `;
     }
 
-    const json = JSON.parse(stateObj.attributes.data);
+    const json = JSON.parse(stateObj.attributes.yamc);
     if (!json || !json[0]) return;
 
     const view = this._config.image_style || "fanart";
@@ -234,7 +234,7 @@ export class MediaCard extends LitElement {
       const tsize = [title_size, line1_size, line2_size, line3_size, line4_size, line5_size];
 
       // Keyword map for replacement, return null if empty so we can hide empty sections
-      const keywords = /\$title|\$episode|\$genres|\$number|\$rating|\$release|\$runtime|\$studio|\$day|\$date|\$time|\$aired|\$tagline|\$info|\$imdb_url|\$vfs_url/g;
+      const keywords = /\$title|\$episode|\$genres|\$number|\$rating|\$release|\$runtime|\$studio|\$day|\$date|\$time|\$aired|\$tagline|\$info|\$imdb_url|\$stream_url/g;
       const keys = {
         $title: item("title") || null,
         $episode: item("episode") || null,
@@ -251,7 +251,7 @@ export class MediaCard extends LitElement {
         $tagline: item("tagline") || null,
         $info: item("info") || null,
         $imdb_url: item("imdb_url") || null,
-        $vfs_url: item("vfs_url") || null
+        $stream_url: item("stream_url") || null
       };
 
       // Replace keywords in lines

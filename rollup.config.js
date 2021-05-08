@@ -32,7 +32,7 @@ const plugins = [
 
 export default [
   {
-    input: 'src/yamc.ts',
+    input: 'src/yamc-card.ts',
     output: {
       dir: 'dist',
       format: 'es',

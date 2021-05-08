@@ -1,22 +1,4 @@
-# Boilerplate Card by [@iantrich](https://www.github.com/iantrich)
-
-A community driven boilerplate of best practices for Home Assistant Lovelace custom cards
-
-[![GitHub Release][releases-shield]][releases]
-[![License][license-shield]](LICENSE.md)
-[![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/custom-components/hacs)
-
-![Project Maintenance][maintenance-shield]
-[![GitHub Activity][commits-shield]][commits]
-
-[![Discord][discord-shield]][discord]
-[![Community Forum][forum-shield]][forum]
-
-## Support
-
-Hey dude! Help me out for a couple of :beers: or a :coffee:!
-
-[![coffee](https://www.buymeacoffee.com/assets/img/custom_images/black_img.png)](https://www.buymeacoffee.com/zJtVxUAgH)
+# YAMC Card by [@koying](https://www.github.com/koying)
 
 ## Options
 
@@ -43,32 +25,6 @@ Hey dude! Help me out for a couple of :beers: or a :coffee:!
 | haptic          | string | **Optional** | Haptic feedback for the [Beta IOS App](http://home-assistant.io/ios/beta) _success, warning, failure, light, medium, heavy, selection_ | `none`      |
 | repeat          | number | **Optional** | How often to repeat the `hold_action` in milliseconds.                                                                                 | `non`       |
 
-## Starting a new card from boilerplate-card
-
-### Step 1
-
-Clone this repository
-
-### Step 2
-
-Install necessary modules (verified to work in node 8.x)
-`yarn install` or `npm install`
-
-
-### Step 3
-
-Do a test lint & build on the project. You can see available scripts in the package.json
-`npm run build`
-
-### Step 4
-
-Search the repository for all instances of "TODO" and handle the changes/suggestions
-
-### Step 5
-
-Customize to suit your needs and contribute it back to the community
-
-
 ## Starting a new card from boilerplate-card with [devcontainer][devcontainer]
 
 Note: this is available only in vscode ensure you have the [Remote Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) extension installed.
@@ -76,12 +32,12 @@ Note: this is available only in vscode ensure you have the [Remote Containers](h
 1. Fork and clone the repository.
 2. Open a [devcontainer][devcontainer] terminal and run `npm start` when it's ready.
 3. The compiled `.js` file will be accessible on
-   `http://127.0.0.1:5000/boilerplate-card.js`.
+   `http://127.0.0.1:5000/yamc-card.js`.
 4. On a running Home Assistant installation add this to your Lovelace
    `resources:`
 
 ```yaml
-- url: "http://127.0.0.1:5000/boilerplate-card.js"
+- url: "http://127.0.0.1:5000/yamc-card.js"
   type: module
 ```
 
@@ -105,15 +61,3 @@ error @typescript-eslint/eslint-plugin@2.6.0: The engine "node" is incompatible 
 error Found incompatible module
 info Visit https://yarnpkg.com/en/docs/cli/install for documentation about this command.
 ```
-
-[commits-shield]: https://img.shields.io/github/commit-activity/y/custom-cards/boilerplate-card.svg?style=for-the-badge
-[commits]: https://github.com/custom-cards/boilerplate-card/commits/master
-[devcontainer]: https://code.visualstudio.com/docs/remote/containers
-[discord]: https://discord.gg/5e9yvq
-[discord-shield]: https://img.shields.io/discord/330944238910963714.svg?style=for-the-badge
-[forum-shield]: https://img.shields.io/badge/community-forum-brightgreen.svg?style=for-the-badge
-[forum]: https://community.home-assistant.io/c/projects/frontend
-[license-shield]: https://img.shields.io/github/license/custom-cards/boilerplate-card.svg?style=for-the-badge
-[maintenance-shield]: https://img.shields.io/maintenance/yes/2019.svg?style=for-the-badge
-[releases-shield]: https://img.shields.io/github/release/custom-cards/boilerplate-card.svg?style=for-the-badge
-[releases]: https://github.com/custom-cards/boilerplate-card/releases

@@ -44,7 +44,7 @@ const options = {
   },
 };
 
-@customElement('yamc-editor')
+@customElement('yamc-card-editor')
 export class MediaCardEditor extends LitElement implements LovelaceCardEditor {
   @property() public hass?: HomeAssistant;
   @property() private _config?: MediaCardConfig;

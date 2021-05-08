@@ -14,7 +14,7 @@ jobs:
       # Build
       - name: Build the file
         run: |
-          cd /home/runner/work/yamc/yamc
+          cd /home/runner/work/yamc-card/yamc-card
           npm install
           npm run build
 
@@ -24,7 +24,7 @@ jobs:
 
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: /home/runner/work/yamc/yamc/dist/yamc.js
-          asset_name: yamc.js
+          file: /home/runner/work/yamc-card/yamc-card/dist/yamc-card.js
+          asset_name: yamc-card.js
           tag: ${{ github.ref }}
           overwrite: true

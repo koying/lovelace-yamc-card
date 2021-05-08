@@ -4,7 +4,7 @@ import { HassEntity } from 'home-assistant-js-websocket';
 import { css, CSSResult, customElement, html, LitElement, property, TemplateResult } from 'lit-element';
 import { HomeAssistant } from 'custom-card-helpers';
 
-@customElement('yamc-more-info')
+@customElement('yamc-card-more-info')
 class MoreInfoMediaCard extends LitElement {
     @property() public hass!: HomeAssistant;
 
@@ -26,29 +26,24 @@ class MoreInfoMediaCard extends LitElement {
         // return html` <ha-attributes .stateObj=${this.stateObj}></ha-attributes> `;
         return html`
             <div class="actions">
-            <div class="kc_front">
-                <div class="kc_text_large" title="${item.title}">${item.title}</div>
-            </div>
-            <img class="kc_img" src="${item.fanart}" />
-            <div>
-                  ${tlink != "null" && tlink.length > 0 ? html`<mwc-button .url="${tlink}" @click="${this._openURL}">Details</mwc-button>` : html``}
-                  ${glink != "null" && glink.length > 0 ? html`<mwc-button .url="${glink}" @click="${this._openURL}">Launch</mwc-button>` : html``}
-                  <mwc-button
-                    .url="${item.info_url}"
-                    @click="${this._handleInfoButton}"
-                    >
-                      Info
-                  </mwc-button>
-                 ${isremovable ? html`
-                    <mwc-button
-                    .id="${item.id}"
-                    .type="${item.type}"
-                    @click="${this._handleDeleteButton}"
-                    >
-                      Delete
+                <div class="kc_front">
+                    <div class="kc_text_large" title="${item.title}">${item.title}</div>
+                </div>
+                <img class="kc_img" src="${item.fanart}" />
+                <div>
+                    ${tlink != "null" && tlink.length > 0 ? html`<mwc-button .url="${tlink}" @click="${this._openURL}">Details
+                    </mwc-button>` : html``}
+                    ${glink != "null" && glink.length > 0 ? html`<mwc-button .url="${glink}" @click="${this._openURL}">Launch
+                    </mwc-button>` : html``}
+                    <mwc-button .url="${item.info_url}" @click="${this._handleInfoButton}">
+                        Info
                     </mwc-button>
-                  ` : html``}
-            </diV>
+                    ${isremovable ? html`
+                    <mwc-button .id="${item.id}" .type="${item.type}" @click="${this._handleDeleteButton}">
+                        Delete
+                    </mwc-button>
+                    ` : html``}
+                </diV>
             </div>
     `;
     }
