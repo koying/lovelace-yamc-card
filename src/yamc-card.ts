@@ -44,7 +44,7 @@ export class MediaCard extends LitElement {
   }
 
   public static async getConfigElement(): Promise<LovelaceCardEditor> {
-    return document.createElement('yamc-editor') as LovelaceCardEditor;
+    return document.createElement('yamc-card-editor') as LovelaceCardEditor;
   }
 
   public static getStubConfig(): object {
@@ -92,7 +92,7 @@ export class MediaCard extends LitElement {
       `;
     }
 
-    const json = JSON.parse(stateObj.attributes.yamc);
+    const json = JSON.parse(stateObj.attributes.yamc.data);
     if (!json || !json[0]) return;
 
     const view = this._config.image_style || "fanart";
@@ -175,7 +175,7 @@ export class MediaCard extends LitElement {
     function format_date(input_date) {
       // Match UTC ISO formatted date with time
       let fd_day, fd_month, fd_year;
-      if (String(input_date).match(/[T]\d+[:]\d+[:]\d+[Z]/)) {
+      if (String(input_date).match(/[T]\d+[:]\d+[:].+[Z]/)) {
         fd_day = new Date(input_date).toLocaleDateString([], {
           day: "2-digit"
         });
@@ -202,9 +202,12 @@ export class MediaCard extends LitElement {
 
     for (let count = 1; count <= this.cardSize; count++) {
       const item = (key: string) => json[count][key];
-      if (!item("airdate")) continue;
-      if (this._config.hide_flagged && item("flag")) continue;
-      else if (this._config.hide_unflagged && !item("flag")) continue;
+      if (!item("airdate"))
+        continue;
+      if (this._config.hide_flagged && item("flag"))
+        continue;
+      else if (this._config.hide_unflagged && !item("flag"))
+        continue;
       const airdate = new Date(item("airdate"));
       const image =
         view == "poster" ? item("poster") : item("fanart") || item("poster");
@@ -222,11 +225,11 @@ export class MediaCard extends LitElement {
             weekday: "short"
           });
 
-      // Format runtime as either '23 min' or '01:23' if over an hour
-      const hrs = String(Math.floor(item("runtime") / 60)).padStart(2, "0");
+      // Format runtime as either '23 min' or '1h23' if over an hour
+      const hrs = String(Math.floor(item("runtime") / 60));
       const min = String(Math.floor(item("runtime") % 60)).padStart(2, "0");
       const runtime =
-        item("runtime") > 0 ? (item("runtime") > 60 ? `${hrs}:${min}` : `${min} min`) : "";
+        item("runtime") > 0 ? (item("runtime") > 60 ? `${hrs}h${min}` : `${min} min`) : "";
 
 
       const line = [title_text, line1_text, line2_text, line3_text, line4_text, line5_text];
@@ -234,7 +237,7 @@ export class MediaCard extends LitElement {
       const tsize = [title_size, line1_size, line2_size, line3_size, line4_size, line5_size];
 
       // Keyword map for replacement, return null if empty so we can hide empty sections
-      const keywords = /\$title|\$episode|\$genres|\$number|\$rating|\$release|\$runtime|\$studio|\$day|\$date|\$time|\$aired|\$tagline|\$info|\$imdb_url|\$stream_url/g;
+      const keywords = /\$title|\$episode|\$genres|\$number|\$rating|\$release|\$runtime|\$studio|\$day|\$date|\$time|\$tagline|\$info|\$info_url|\$stream_url/g;
       const keys = {
         $title: item("title") || null,
         $episode: item("episode") || null,
@@ -247,10 +250,9 @@ export class MediaCard extends LitElement {
         $day: day || null,
         $time: airdate.toLocaleTimeString([], timeform) || null,
         $date: format_date(item("airdate")) || null,
-        $aired: format_date(item("aired")) || null,
         $tagline: item("tagline") || null,
         $info: item("info") || null,
-        $imdb_url: item("imdb_url") || null,
+        $info_url: item("info_url") || null,
         $stream_url: item("stream_url") || null
       };
 
@@ -312,14 +314,15 @@ export class MediaCard extends LitElement {
       }
     }
 
-    const pl_json = JSON.parse(stateObj.attributes.playlists);
+    const pl_json = JSON.parse(stateObj.attributes.yamc.playlists);
 
     return html`
           <ha-card tabindex="0">
             <table class="kc_table">
               <tr>
                 <td style="padding: 10px 10px 3px;" width="40%">
-                  <paper-input label="Search" @keypress=${({ target, keyCode }) => {
+                  <paper-input label="Search" value="${stateObj.attributes.yamc.last_search}" @keypress=${({ target, keyCode })=>
+                    {
         if (keyCode === ENTER_KEY)
           this._search(target.value);
       }}
@@ -328,23 +331,24 @@ export class MediaCard extends LitElement {
                 </td>
                 <td style="padding: 10px 10px 3px;">
                   <paper-dropdown-menu style="width: 100%" label="Playlist" no-label-float>
-                    <paper-listbox style="width: 100%" slot="dropdown-content" .selected=${stateObj.attributes.playlist}
+                    <paper-listbox style="width: 100%" slot="dropdown-content" .selected=${stateObj.attributes.yamc.last_playlist}
                       attr-for-selected="item-name" @selected-item-changed=${this._set_playlist}>
-                      ${pl_json.sort().map((pl) => html`<paper-item item-name=${pl["path"]}>${pl["name"]}</paper-item>`)}
+                      ${pl_json.sort().map((pl) => html`<paper-item item-name=${pl["name"]}>${pl["description"]}</paper-item>`)}
                     </paper-listbox>
                   </paper-dropdown-menu>
                   <div style="position: absolute; font-size: 8px; line-height: 10px; top: 60px; right: 10px">
-                    ${((stateObj.attributes.page - 1) * stateObj.attributes.page_size) + 1}-${Math.min(((stateObj.attributes.page)
-        * stateObj.attributes.page_size), stateObj.attributes.total_items)}
-                    / ${stateObj.attributes.total_items}
+                    ${((stateObj.attributes.yamc.page - 1) * stateObj.attributes.yamc.page_size) +
+      1}-${Math.min(((stateObj.attributes.yamc.page)
+        * stateObj.attributes.yamc.page_size), stateObj.attributes.yamc.total_items)}
+                    / ${stateObj.attributes.yamc.total_items}
                   </div>
                 </td>
               </tr>
-              ${stateObj.attributes.total_items > stateObj.attributes.page_size ? html`
+              ${stateObj.attributes.yamc.total_items > stateObj.attributes.yamc.page_size ? html`
               <tr>
                 <td colspan=2 align="center">
-                  <vaadin-pagination page=${stateObj.attributes.page} total=${stateObj.attributes.total_items}
-                    limit=${stateObj.attributes.page_size} size=3 @page-change=${this._onPageChanged}></vaadin-pagination>
+                  <vaadin-pagination page=${stateObj.attributes.yamc.page} total=${stateObj.attributes.yamc.total_items}
+                    limit=${stateObj.attributes.yamc.page_size} size=3 @page-change=${this._onPageChanged}></vaadin-pagination>
                 </td>
               </tr>
               ` : html``}
@@ -357,9 +361,9 @@ export class MediaCard extends LitElement {
   private _handleAction(ev: ActionHandlerEvent): void {
     if (this.hass && this._config && ev.detail.action) {
       const stateObj = this.hass.states[this._config.entity];
-      stateObj.attributes.cur_item = (ev.currentTarget as any).item
-      popUp(`${stateObj.attributes.cur_item.title} (${stateObj.attributes.cur_item.aired})`,
-        { type: "custom:yamc-details", entity: this._config.entity }
+      stateObj.attributes.yamc.cur_item = (ev.currentTarget as any).item
+      popUp(`${stateObj.attributes.yamc.cur_item.title} (${stateObj.attributes.yamc.cur_item.release})`,
+        { type: "custom:yamc-card-details", entity: this._config.entity, domain: this._config.domain, target_player: this._config.target_player }
       )
       //handleAction(this, this.hass, this._config, ev.detail.action);
     }
@@ -370,7 +374,9 @@ export class MediaCard extends LitElement {
       return;
 
     console.log("NewPage", ev.detail.newPage);
-    this.hass.callService("kodi", "set_page", {
+
+    this.hass.callService(this._config.domain, "yamc_setpage", {
+      entity_id: this._config.entity,
       page: ev.detail.newPage
     });
   }
@@ -380,10 +386,11 @@ export class MediaCard extends LitElement {
       return;
 
     const stateObj = this.hass.states[this._config.entity];
-    if (stateObj.attributes.playlist === ev.target.selected)
+    if (stateObj.attributes.yamc.last_playlist === ev.target.selected)
       return;
 
-    this.hass.callService("kodi", "set_playlist", {
+    this.hass.callService(this._config.domain, "yamc_setplaylist", {
+      entity_id: this._config.entity,
       playlist: ev.target.selected
     });
   }
@@ -392,11 +399,12 @@ export class MediaCard extends LitElement {
     if (this.hass && this._config) {
 
       const stateObj = this.hass.states[this._config.entity];
-      if (stateObj.attributes.last_search === text)
+      if (stateObj.attributes.yamc.last_search === text)
         return;
 
-      this.hass.callService("kodi", "search", {
-        text: text
+      this.hass.callService(this._config.domain, "search", {
+        entity_id: this._config.entity,
+        search_term: text
       });
     }
   }

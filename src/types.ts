@@ -6,6 +6,8 @@ export interface MediaCardDetailsConfig {
   type: string;
   name?: string;
   entity: string;
+  domain: string;
+  target_player?: string;
 }
 
 export interface MediaCardConfig {
@@ -15,6 +17,8 @@ export interface MediaCardConfig {
   show_error?: boolean;
   test_gui?: boolean;
   entity: string;
+  domain: string;
+  target_player?: string;
   tap_action?: ActionConfig;
   hold_action?: ActionConfig;
   double_tap_action?: ActionConfig;

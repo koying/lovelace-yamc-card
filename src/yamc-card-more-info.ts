@@ -15,9 +15,9 @@ class MoreInfoMediaCard extends LitElement {
             return html``;
         }
 
-        const item = this.stateObj.attributes.cur_item
-        const tlink = item.imdb_url;
-        const glink = item.vfs_url;
+        const item = this.stateObj.attributes.yamc.cur_item
+        const tlink = item.info_url;
+        const glink = item.stream_url;
         let isremovable = true;
         if (item.type === "tvshow") {
             isremovable = false;
@@ -31,9 +31,9 @@ class MoreInfoMediaCard extends LitElement {
                 </div>
                 <img class="kc_img" src="${item.fanart}" />
                 <div>
-                    ${tlink != "null" && tlink.length > 0 ? html`<mwc-button .url="${tlink}" @click="${this._openURL}">Details
+                    ${tlink != null && tlink.length > 0 ? html`<mwc-button .url="${tlink}" @click="${this._openURL}">Details
                     </mwc-button>` : html``}
-                    ${glink != "null" && glink.length > 0 ? html`<mwc-button .url="${glink}" @click="${this._openURL}">Launch
+                    ${glink != null && glink.length > 0 ? html`<mwc-button .url="${glink}" @click="${this._openURL}">Launch
                     </mwc-button>` : html``}
                     <mwc-button .url="${item.info_url}" @click="${this._handleInfoButton}">
                         Info

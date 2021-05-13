@@ -31,13 +31,13 @@ class MediaCardDetails extends LitElement {
 
         const stateObj = this.hass.states[this._config.entity];
 
-        const item = stateObj.attributes.cur_item
+        const item = stateObj.attributes.yamc.cur_item
         if (!item) {
             return html``;
         }
 
-        const tlink = item.imdb_url;
-        const glink = item.vfs_url;
+        const tlink = item.info_url;
+        const glink = item.stream_url;
         let isremovable = true;
         if (item.type === "tvshow") {
             isremovable = false;
@@ -51,15 +51,15 @@ class MediaCardDetails extends LitElement {
                 </div>
                 <img class="kc_img" src="${item.fanart}" />
                 <div class="kc_buttons">
-                    ${tlink != "null" && tlink.length > 0 ? html`<mwc-button .url="${tlink}" @click="${this._openURL}">Details
+                    ${tlink != null && tlink.length > 0 ? html`<mwc-button .url="${tlink}" @click="${this._openURL}">Details
                     </mwc-button>` : html``}
-                    ${glink != "null" && glink.length > 0 ? html`<mwc-button .url="${glink}" @click="${this._launchURL}">Launch
+                    ${glink != null && glink.length > 0 ? html`<mwc-button .url="${glink}" @click="${this._launchURL}">Stream
                     </mwc-button>` : html``}
-                    <mwc-button .url="${item.info_url}" @click="${this._handleInfoButton}">
-                        Info
+                    <mwc-button .id="${item.id}" @click="${this._handleInfoButton}">
+                        Browse
                     </mwc-button>
                     ${isremovable ? html`
-                    <mwc-button .id="${item.id}" .type="${item.type}" @click="${this._handleDeleteButton}">
+                    <mwc-button .id="${item.id}" @click="${this._handleDeleteButton}">
                         Delete
                     </mwc-button>
                     ` : html``}
@@ -69,26 +69,27 @@ class MediaCardDetails extends LitElement {
     }
 
     private _handleDeleteButton(ev: MouseEvent): void {
-        if (this.hass) {
-            if (!confirm(`Are you sure you want to delete this item?`)) {
-                return;
-            }
+        if (!this.hass || !this._config) return
 
-            const id = (ev.currentTarget as any).id;
-            const type = (ev.currentTarget as any).type;
-            this.hass.callService("kodi", "remove", {
-                id: id, type: type
-            });
-            closePopUp();
+        if (!confirm(`Are you sure you want to delete this item?`)) {
+            return;
         }
+
+        const id = (ev.currentTarget as any).id;
+        this.hass.callService(this._config.domain, "delete", {
+            id: id, entity_id: this._config.entity
+        });
+        closePopUp();
     }
 
     private _handleInfoButton(ev: MouseEvent): void {
-        if (this.hass) {
-            const url = (ev.currentTarget as any).url;
-            this.hass.callService("kodi", "view_info", { url: url });
-            closePopUp();
-        }
+        if (!this.hass || !this._config) return
+
+        const id = (ev.currentTarget as any).id;
+        this.hass.callService(this._config.domain, "browse", {
+            id: id, entity_id: this._config.target_player
+        });
+        closePopUp();
     }
 
     private _openURL(ev: MouseEvent): void {
@@ -102,7 +103,7 @@ class MediaCardDetails extends LitElement {
     private _launchURL(ev: MouseEvent): void {
         if (this.hass) {
             const url = (ev.currentTarget as any).url;
-            window.open(url, "_self");
+            window.open(url, "_blank");
             closePopUp();
         }
     }
