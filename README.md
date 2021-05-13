@@ -1,5 +1,15 @@
 # YAMC Card by [@koying](https://www.github.com/koying)
 
+## Changelog
+
+### 1.0.0
+
+- Initial public release
+
+## Credits
+
+Based upon `boilerplate-card` by @iantrich and largely inspired by `upcoming-media-card` by @maykar
+
 ## Options
 
 | Name              | Type    | Requirement  | Description                                 | Default             |
