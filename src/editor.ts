@@ -130,19 +130,18 @@ export class MediaCardEditor extends LitElement implements LovelaceCardEditor {
         ${options.required.show
           ? html`
               <div class="values">
-                <paper-dropdown-menu
-                  label="Entity (Required)"
-                  @value-changed=${this._valueChanged}
+                <mwc-select
+                  .label="Entity (Required)"
+                  .value=${String(entities.indexOf(this._entity))}
+                  @selected=${this._valueChanged}
                   .configValue=${'entity'}
                 >
-                  <paper-listbox slot="dropdown-content" .selected=${entities.indexOf(this._entity)}>
-                    ${entities.map(entity => {
-                      return html`
-                        <paper-item>${entity}</paper-item>
-                      `;
-                    })}
-                  </paper-listbox>
-                </paper-dropdown-menu>
+                  ${entities.map(entity => {
+                    return html`
+                      <mwc-list-item>${entity}</mwc-list-item>
+                    `;
+                  })}
+                </mwc-select>
               </div>
             `
           : ''}

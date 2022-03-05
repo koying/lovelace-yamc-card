@@ -1,5 +1,6 @@
 /* eslint-disable prettier/prettier */
-import { LitElement, html, customElement, property, CSSResult, TemplateResult, css, PropertyValues } from 'lit-element';
+import { LitElement, html, TemplateResult, css, PropertyValues, CSSResultGroup } from 'lit';
+import { customElement, property, state } from 'lit/decorators';
 import {
   HomeAssistant,
   hasConfigOrEntityChanged,
@@ -10,6 +11,10 @@ import {
   getLovelace,
 } from 'custom-card-helpers';
 import { popUp, closePopUp } from "card-tools/src/popup";
+
+import { ScopedRegistryHost } from "@lit-labs/scoped-registry-mixin";
+import { selectDefinition } from '../elements/select';
+import { textfieldDefinition } from '../elements/textfield';
 
 import './editor';
 import './yamc-card-more-info'
@@ -32,7 +37,11 @@ console.info(
 const ENTER_KEY = 13;
 
 @customElement('yamc-card')
-export class MediaCard extends LitElement {
+export class MediaCard extends ScopedRegistryHost(LitElement) {
+  static elementDefinitions = {
+    ...selectDefinition, ...textfieldDefinition
+  };
+
   cardSize = 0;
   @property() private _helpers?: any;
 
@@ -320,23 +329,32 @@ export class MediaCard extends LitElement {
           <ha-card tabindex="0">
             <table class="kc_table">
               <tr>
-                <td style="padding: 10px 10px 3px;" width="40%">
-                  <paper-input label="Search" value="${stateObj.attributes.yamc.last_search}" @keypress=${({ target, keyCode })=>
+                <td style="padding: 10px 10px 3px;" width="50%">
+                  <mwc-textfield label="Search" .value=${stateObj.attributes.yamc.last_search} .configValue=${'name'} @keypress=${({ target, keyCode })=>
+                    {
+        if (keyCode === ENTER_KEY)
+          this._search(target.value);
+      }}>
+                  </mwc-textfield>
+                  <!-- <paper-input label="Search" value="${stateObj.attributes.yamc.last_search}" @keypress=${({ target, keyCode })=>
                     {
         if (keyCode === ENTER_KEY)
           this._search(target.value);
       }}
                     no-label-float
-                    ></paper-input>
+                    ></paper-input> -->
                 </td>
-                <td style="padding: 10px 10px 3px;">
-                  <paper-dropdown-menu style="width: 100%" label="Playlist" no-label-float>
-                    <paper-listbox style="width: 100%" slot="dropdown-content" .selected=${stateObj.attributes.yamc.last_playlist}
-                      attr-for-selected="item-name" @selected-item-changed=${this._set_playlist}>
-                      ${pl_json.sort().map((pl) => html`<paper-item item-name=${pl["name"]}>${pl["description"]}</paper-item>`)}
-                    </paper-listbox>
-                  </paper-dropdown-menu>
-                  <div style="position: absolute; font-size: 8px; line-height: 10px; top: 60px; right: 10px">
+                <td style="padding: 10px 10px 3px;" width="100%">
+                  <mwc-select .label="Playlist" @selected=${this._set_playlist} .value=${stateObj.attributes.yamc.last_playlist}>
+                    ${pl_json.sort().map((pl) => html`<mwc-list-item .value=${pl["name"]}>${pl["description"]}</mwc-list-item>`)}
+                  </mwc-select>
+                  <!-- <paper-dropdown-menu style="width: 100%" label="Playlist" no-label-float>
+                                                                                                                                                                <paper-listbox style="width: 100%" slot="dropdown-content" .selected=${stateObj.attributes.yamc.last_playlist}
+                                                                                                                                                                  attr-for-selected="item-name" @selected-item-changed=${this._set_playlist}>
+                                                                                                                                                                  ${pl_json.sort().map((pl) => html`<paper-item item-name=${pl["name"]}>${pl["description"]}</paper-item>`)}
+                                                                                                                                                                </paper-listbox>
+                                                                                                                                                              </paper-dropdown-menu> -->
+                  <div style="position: relative; font-size: 8px; line-height: 10px; top: 1px; right: 1px">
                     ${((stateObj.attributes.yamc.page - 1) * stateObj.attributes.yamc.page_size) +
       1}-${Math.min(((stateObj.attributes.yamc.page)
         * stateObj.attributes.yamc.page_size), stateObj.attributes.yamc.total_items)}
@@ -382,16 +400,16 @@ export class MediaCard extends LitElement {
   }
 
   private _set_playlist(ev): void {
-    if (!this.hass || !this._config || ev.target.selected === "")
+    if (!this.hass || !this._config || ev.target.value === "")
       return;
 
     const stateObj = this.hass.states[this._config.entity];
-    if (stateObj.attributes.yamc.last_playlist === ev.target.selected)
+    if (stateObj.attributes.yamc.last_playlist === ev.target.value)
       return;
 
     this.hass.callService(this._config.domain, "yamc_setplaylist", {
       entity_id: this._config.entity,
-      playlist: ev.target.selected
+      playlist: ev.target.value
     });
   }
 
@@ -409,7 +427,7 @@ export class MediaCard extends LitElement {
     }
   }
 
-  static get styles(): CSSResult {
+  static get styles(): CSSResultGroup {
     return css`
       .kc_icon_indic {
         height: 27px;
